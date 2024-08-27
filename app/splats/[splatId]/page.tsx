@@ -1,7 +1,14 @@
 import fs from 'fs';
 import path from 'path';
 
-export default function SplatPage({ params }) {
+
+interface SplatPageProps {
+  params: {
+    splatId: string;
+  };
+}
+
+export default function SplatPage({ params }: SplatPageProps) {
   const { splatId } = params;
 
   // Build the path to the splat file
