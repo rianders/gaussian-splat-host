@@ -1,86 +1,151 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+'use client'
+
+import React, { useEffect, useRef, useState } from 'react';
 import { Engine, Scene, ArcRotateCamera, Vector3, HemisphericLight, Color3, GaussianSplattingMesh } from '@babylonjs/core';
-import { PLYFileLoader } from '@babylonjs/loaders';
 
 interface BabylonSceneProps {
-  splatUrl: string;
+  initialSplatPath: string;
+  onSplatLoad?: (file: File) => void;
 }
 
-const BabylonScene: React.FC<BabylonSceneProps> = ({ splatUrl }) => {
+const BabylonScene: React.FC<BabylonSceneProps> = ({ initialSplatPath, onSplatLoad }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadSplat = useCallback(async (scene: Scene, url: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      if (url.endsWith('.ply')) {
-        PLYFileLoader.load(scene, url);
-      } else {
-        const gs = new GaussianSplattingMesh("Splat", null, scene);
-        await gs.loadFileAsync(url);
-        gs.position.y = 1.7;
-      }
-      
-      console.log("File loaded successfully");
-      setIsLoading(false);
-    } catch (error) {
-      console.error("Error loading file:", error);
-      setError("Failed to load the file. Please try again.");
-      setIsLoading(false);
-    }
-  }, []);
+  const [scene, setScene] = useState<Scene | null>(null);
+  const [currentSplat, setCurrentSplat] = useState<GaussianSplattingMesh | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     if (canvasRef.current) {
       const engine = new Engine(canvasRef.current, true);
-      const scene = new Scene(engine);
+      const newScene = new Scene(engine);
+      setScene(newScene);
 
-      scene.clearColor = new Color3(0.1, 0.1, 0.1);
+      newScene.clearColor = new Color3(0.1, 0.1, 0.1);
 
-      const camera = new ArcRotateCamera("camera1", -Math.PI / 2, Math.PI / 4, 10, Vector3.Zero(), scene);
+      const camera = new ArcRotateCamera("camera1", -Math.PI / 2, Math.PI / 4, 10, Vector3.Zero(), newScene);
       camera.attachControl(canvasRef.current, true);
       camera.wheelPrecision = 100;
       camera.inertia = 0.97;
 
-      new HemisphericLight('light1', new Vector3(0, 1, 0), scene);
+      new HemisphericLight('light1', new Vector3(0, 1, 0), newScene);
 
-      loadSplat(scene, splatUrl);
+      // Load initial splat
+      loadSplat(initialSplatPath);
 
       engine.runRenderLoop(() => {
-        scene.render();
+        newScene.render();
       });
 
-      const handleResize = () => {
+      window.addEventListener('resize', () => {
         engine.resize();
-      };
-
-      window.addEventListener('resize', handleResize);
+      });
 
       return () => {
         engine.dispose();
-        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('resize', () => engine.resize());
       };
     }
-  }, [splatUrl, loadSplat]);
+  }, [initialSplatPath]);
+
+  const loadSplat = async (url: string) => {
+    if (!scene) return;
+
+    // Remove the current splat if it exists
+    if (currentSplat) {
+      currentSplat.dispose();
+      setCurrentSplat(null);
+    }
+
+    try {
+      const gs = new GaussianSplattingMesh("Splat", null, scene);
+      await gs.loadFileAsync(url);
+      gs.position.y = 1.7;
+      setCurrentSplat(gs);
+      console.log("Splat loaded successfully");
+    } catch (error) {
+      console.error("Error loading splat:", error);
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      loadSplat(url);
+      if (onSplatLoad) {
+        onSplatLoad(file);
+      }
+    }
+  };
+
+  const handleDragEnter = (event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const handleDrop = (event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragging(false);
+
+    if (event.dataTransfer?.files) {
+      const file = event.dataTransfer.files[0];
+      if (file && (file.name.endsWith('.splat') || file.name.endsWith('.ply'))) {
+        const url = URL.createObjectURL(file);
+        loadSplat(url);
+        if (onSplatLoad) {
+          onSplatLoad(file);
+        }
+      } else {
+        console.warn('Please drop a .splat or .ply file.');
+        alert('Please drop a .splat or .ply file.');
+      }
+    }
+  };
 
   return (
-    <div className="relative w-full h-screen" role="region" aria-label="3D Splat Viewer">
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-10" aria-live="polite">
-          <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-white" aria-label="Loading"></div>
+    <div style={{ position: 'relative', width: '100%', height: '90vh' }}>
+      <input type="file" accept=".splat,.ply" onChange={handleFileUpload} />
+      <canvas 
+        ref={canvasRef} 
+        style={{ width: '100%', height: '100%' }}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      />
+      {isDragging && (
+        <div 
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            color: 'white',
+            fontSize: '24px',
+            pointerEvents: 'none',
+          }}
+        >
+          Drop .splat or .ply file here
         </div>
       )}
-      {error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-red-800 bg-opacity-50 z-10" aria-live="assertive">
-          <div className="bg-white p-4 rounded-lg shadow-lg">
-            <p className="text-red-600">{error}</p>
-          </div>
-        </div>
-      )}
-      <canvas ref={canvasRef} className="w-full h-full" tabIndex={0} aria-label="3D Splat Viewer Canvas" />
     </div>
   );
 };

@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 
 interface SplatListProps {
@@ -8,7 +10,7 @@ interface SplatListProps {
 }
 
 export default function SplatList({ splats }: SplatListProps) {
-  const filteredSplats = splats.filter(splat => splat.name !== 'starter');
+  const filteredSplats = splats.filter(splat => splat.name !== 'ROOM-A');
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" role="list">
