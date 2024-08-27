@@ -14,12 +14,13 @@ const SplatViewer: React.FC = () => {
 
   useEffect(() => {
     // Load initial list of splats
-    // This could be replaced with an API call if you're fetching splats from a server
     setSplats([
       { name: 'Sample Splat 1', path: '/splats/sample1.splat' },
       { name: 'Sample Splat 2', path: '/splats/sample2.ply' },
       // Add more initial splats as needed
     ]);
+    // Set the first splat as the initially selected one
+    setSelectedSplat('/splats/sample1.splat');
   }, []);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,6 +39,11 @@ const SplatViewer: React.FC = () => {
     setSelectedSplat(path);
   };
 
+  const handleSplatLoad = (file: File) => {
+    console.log("Splat loaded:", file.name);
+    // Add any additional logic you want to perform when a splat is loaded
+  };
+
   return (
     <div className="flex flex-col md:flex-row h-screen">
       <div className="w-full md:w-1/3 p-4 overflow-y-auto">
@@ -50,7 +56,7 @@ const SplatViewer: React.FC = () => {
         />
         <ul className="space-y-2">
           {splats.map(splat => (
-            <li key={splat.name} className="flex items-center justify-between bg-gray-100 p-2 rounded">
+            <li key={splat.path} className="flex items-center justify-between bg-gray-100 p-2 rounded">
               <span>{splat.name}</span>
               <button 
                 onClick={() => handleSelectSplat(splat.path)}
@@ -66,7 +72,7 @@ const SplatViewer: React.FC = () => {
         {selectedSplat ? (
           <BabylonScene 
             initialSplatPath={selectedSplat} 
-            onSplatLoad={(file) => console.log("Splat loaded:", file.name)}
+            onSplatLoad={handleSplatLoad}
           />
         ) : (
           <div className="flex items-center justify-center h-full bg-gray-200">
