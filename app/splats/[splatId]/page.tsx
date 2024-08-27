@@ -1,4 +1,4 @@
-import { Metadata } from 'next'
+import { Metadata } from 'next';
 import dynamic from 'next/dynamic';
 import fs from 'fs';
 import path from 'path';
@@ -9,22 +9,25 @@ const DynamicBabylonScene = dynamic(() => import('../../components/BabylonScene'
 });
 
 interface PageProps {
-  params: { splatId: string }
+  params: { splatId: string };
 }
 
 export async function generateStaticParams() {
   const splatsDirectory = path.join(process.cwd(), 'public', 'splats');
   const files = fs.readdirSync(splatsDirectory);
-  
-  return files.map((file) => ({
-    splatId: path.parse(file).name,
-  }));
+
+  // Return only files with .splat or .ply extensions
+  return files
+    .filter((file) => file.endsWith('.splat') || file.endsWith('.ply'))
+    .map((file) => ({
+      splatId: path.parse(file).name,
+    }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   return {
     title: `Splat Viewer: ${params.splatId}`,
-  }
+  };
 }
 
 export default function SplatPage({ params }: PageProps) {
@@ -39,25 +42,28 @@ export default function SplatPage({ params }: PageProps) {
     splatUrl += '.ply';
   } else {
     // Handle case where file doesn't exist
-    return <div>Error: Splat file not found</div>;
+    return <div className="text-center text-red-600">Error: Splat file not found</div>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Splat Viewer: {splatId}
+    <div className="min-h-screen bg-[var(--bg-color)] text-[var(--text-color)]">
+      <header className="bg-white shadow dark:bg-gray-800">
+        <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8">
+          <h1 className="text-3xl font-bold">
+            Welcome to the Splat Viewer
           </h1>
+          <p className="mt-2">
+            You are viewing the splat file: <strong>{splatId}</strong>
+          </p>
         </div>
       </header>
       <main>
-        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-          <div className="px-4 py-6 sm:px-0">
+        <div className="container mx-auto py-6 sm:px-6 lg:px-8">
+          <div className="p-4 sm:p-0">
             <DynamicBabylonScene initialSplatPath={splatUrl} />
           </div>
         </div>
       </main>
     </div>
-  )
+  );
 }

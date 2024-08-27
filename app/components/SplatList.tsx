@@ -1,27 +1,48 @@
-'use client'
+'use client';
 
-import Link from 'next/link'
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 
-interface SplatListProps {
-  splats: Array<{
-    name: string;
-    type: 'splat' | 'ply';
-  }>;
-}
+const SplatList: React.FC = () => {
+  const [splats, setSplats] = useState<any[]>([]); // Temporarily using 'any' for debugging
 
-export default function SplatList({ splats }: SplatListProps) {
-  const filteredSplats = splats.filter(splat => splat.name !== 'ROOM-A');
+  useEffect(() => {
+    fetch('/api/splats')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Fetched splats:', data); // Log fetched data
+        const splatData = data.map((path: string) => ({
+          name: path.split('/').pop() || path,
+          path: path,
+        }));
+        setSplats(splatData);
+      })
+      .catch(error => console.error('Error fetching splats:', error)); // Log errors
+  }, []);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" role="list">
-      {filteredSplats.map((splat) => (
-        <Link href={`/splats/${splat.name}`} key={splat.name}>
-          <div className="block p-4 border rounded-lg hover:bg-gray-100 transition-colors" role="listitem">
-            <h2 className="text-xl font-semibold">{splat.name}</h2>
-            <p className="text-sm text-gray-600">Type: {splat.type}</p>
-          </div>
-        </Link>
-      ))}
+    <div className="container mx-auto p-4">
+      <h1 className="text-3xl font-bold mb-4">Available Splats</h1>
+      <ul className="space-y-2">
+        {splats.length > 0 ? (
+          splats.map((splat: any) => ( // Temporarily using 'any' for debugging
+            <li key={splat.path} className="p-4 bg-gray-100 dark:bg-gray-800 rounded">
+              <Link href={`/splats/${splat.name.replace(/\.[^/.]+$/, "")}`}>
+                {splat.name}
+              </Link>
+            </li>
+          ))
+        ) : (
+          <p>No splats found.</p>
+        )}
+      </ul>
     </div>
-  )
-}
+  );
+};
+
+export default SplatList;

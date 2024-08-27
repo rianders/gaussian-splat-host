@@ -21,25 +21,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          lfs: true
+          lfs: true  # Ensure LFS files are checked out
+
       - name: Git LFS Pull
-        run: git lfs pull
+        run: git lfs pull  # Pull LFS files from storage
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
+
       - name: Setup Pages
         uses: actions/configure-pages@v3
         with:
           static_site_generator: next
+
       - name: Install dependencies
-        run: bun install
+        run: bun install  # Install dependencies
+
       - name: Build with Next.js
-        run: bun run build
+        run: bun run build  # Build the site
+
+      - name: Verify LFS Files
+        run: ls -la ./out  # Check if LFS files are in the output directory
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
-          path: ./out
+          path: ./out  # Upload build artifacts, should include LFS files
 
   deploy:
     environment:
@@ -50,4 +59,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v2  # Deploy the site
