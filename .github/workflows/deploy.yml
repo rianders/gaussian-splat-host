@@ -42,6 +42,9 @@ jobs:
       - name: Build with Next.js
         run: bun run build  # Build the site
 
+      - name: Verify LFS Files
+        run: ls -la ./out  # Check if LFS files are in the output directory
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
